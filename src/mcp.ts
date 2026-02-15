@@ -69,7 +69,7 @@ export async function createAndRunMcpServer(params: {
 }): Promise<void> {
   const server = new Server(
     {
-      name: 'bruno-mcp-server',
+      name: 'bruno-mcp-tools',
       version: '0.1.0'
     },
     {

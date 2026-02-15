@@ -23,7 +23,7 @@ Example Cursor config:
       "command": "npx",
       "args": [
         "-y",
-        "bruno-mcp-server",
+        "bruno-mcp-tools",
         "--collection",
         "/absolute/path/to/collection",
         "--prefix",
@@ -42,7 +42,7 @@ Local build example (without publishing):
     "bruno-local": {
       "command": "node",
       "args": [
-        "/absolute/path/to/repo/dist/src/index.js",
+        "/absolute/path/to/repo/dist/index.js",
         "--collection",
         "/absolute/path/to/collection"
       ]

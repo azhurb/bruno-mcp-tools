@@ -1,14 +1,16 @@
 {
-  "name": "bruno-mcp-server",
-  "version": "0.1.0",
+  "name": "bruno-mcp-tools",
+  "version": "0.1.1",
   "description": "MCP server exposing Bruno requests as tools",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "bruno-mcp-server": "dist/index.js"
+    "bruno-mcp-tools": "dist/index.js"
   },
   "files": [
-    "dist",
+    "dist/*.js",
+    "dist/*.js.map",
+    "dist/*.d.ts",
     "README.md",
     "LICENSE"
   ],
