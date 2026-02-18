@@ -10,6 +10,8 @@ export type ToolTarget = {
   requestPathNoExt: string;
   requiresEnv: boolean;
   templateVars: string[];
+  /** Request documentation from the .bru `docs` block, if present. Used as MCP tool description. */
+  docs?: string;
 };
 
 const TOOL_NAME_PATTERN = /^[a-z0-9_]+$/;
@@ -53,6 +55,54 @@ export function buildToolNameFromRelativePath(prefix: string, relativeBruPath: s
   return validateToolName(name);
 }
 
+/**
+ * Extracts the content of the first `docs { ... }` text block from .bru file content.
+ * Returns undefined if no docs block is present.
+ */
+export function extractDocsFromBruContent(content: string): string | undefined {
+  const lines = content.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line === undefined || !/^\s*docs\s*\{/.test(line)) {
+      i += 1;
+      continue;
+    }
+    const contentLines: string[] = [];
+    const restOfFirstLine = line.replace(/^\s*docs\s*\{\s*/, '').trimEnd();
+    if (restOfFirstLine && restOfFirstLine !== '}') {
+      const upToClose = restOfFirstLine.replace(/\s*\}$/, '').trim();
+      if (upToClose) contentLines.push(upToClose);
+      if (/\}\s*$/.test(restOfFirstLine)) {
+        const out = contentLines.join('\n').trim();
+        return out.length > 0 ? out : undefined;
+      }
+    }
+    i += 1;
+    while (i < lines.length) {
+      const contentLine = lines[i];
+      if (contentLine === undefined) {
+        i += 1;
+        continue;
+      }
+      if (/^\s*\}\s*$/.test(contentLine)) {
+        const out = contentLines.join('\n').trim();
+        return out.length > 0 ? out : undefined;
+      }
+      contentLines.push(contentLine);
+      i += 1;
+    }
+    const out = contentLines.join('\n').trim();
+    return out.length > 0 ? out : undefined;
+  }
+  return undefined;
+}
+
+export async function extractDocsFromBruFile(bruFileAbs: string): Promise<string | undefined> {
+  const content = await fs.readFile(bruFileAbs, 'utf8');
+  return extractDocsFromBruContent(content);
+}
+
 export async function extractTemplateVariables(bruFileAbs: string): Promise<string[]> {
   const content = await fs.readFile(bruFileAbs, 'utf8');
   const found = new Set<string>();
@@ -80,7 +130,10 @@ export async function buildSingleToolMap(params: {
     ? validateToolName(params.nameOverride)
     : validateToolName(`${params.prefix}_${fileStem}`);
 
-  const templateVars = await extractTemplateVariables(params.bruFileAbs);
+  const [templateVars, docs] = await Promise.all([
+    extractTemplateVariables(params.bruFileAbs),
+    extractDocsFromBruFile(params.bruFileAbs)
+  ]);
   const requiresEnv = templateVars.length > 0;
   const relativePath = path.relative(params.collectionRootAbs, params.bruFileAbs);
   if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
@@ -95,7 +148,8 @@ export async function buildSingleToolMap(params: {
         collectionRootAbs: params.collectionRootAbs,
         requestPathNoExt: relativePath.replace(/\.bru$/i, '').split(path.sep).join('/'),
         requiresEnv,
-        templateVars
+        templateVars,
+        ...(docs !== undefined ? { docs } : {})
       }
     ]
   ]);
@@ -124,7 +178,10 @@ export async function buildCollectionToolMap(params: {
     }
 
     const requestPathNoExt = relativePath.replace(/\.bru$/i, '').split(path.sep).join('/');
-    const templateVars = await extractTemplateVariables(bruFileAbs);
+    const [templateVars, docs] = await Promise.all([
+      extractTemplateVariables(bruFileAbs),
+      extractDocsFromBruFile(bruFileAbs)
+    ]);
     const requiresEnv = templateVars.length > 0;
     map.set(toolName, {
       toolName,
@@ -132,7 +189,8 @@ export async function buildCollectionToolMap(params: {
       collectionRootAbs: params.collectionRootAbs,
       requestPathNoExt,
       requiresEnv,
-      templateVars
+      templateVars,
+      ...(docs !== undefined ? { docs } : {})
     });
   }
 

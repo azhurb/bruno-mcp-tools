@@ -18,6 +18,9 @@ export async function discoverBruFiles(rootAbs: string): Promise<string[]> {
       }
 
       if (entry.isDirectory()) {
+        if (entry.name.toLowerCase() === 'environments') {
+          continue;
+        }
         await walk(entryAbs);
         continue;
       }

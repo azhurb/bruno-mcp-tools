@@ -82,7 +82,8 @@ export async function createAndRunMcpServer(params: {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const tools = [...params.tools.values()].map((target) => ({
       name: target.toolName,
-      description: `Execute Bruno request: ${target.requestPathNoExt}`,
+      description:
+        target.docs?.trim() ?? `Execute Bruno request: ${target.requestPathNoExt}`,
       inputSchema: TOOL_INPUT_SCHEMA
     }));
 

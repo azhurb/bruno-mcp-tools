@@ -1,6 +1,6 @@
 {
   "name": "bruno-mcp-tools",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server exposing Bruno requests as tools",
   "type": "module",
   "main": "dist/index.js",

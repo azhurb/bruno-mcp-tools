@@ -8,6 +8,7 @@ import {
   buildCollectionToolMap,
   buildToolNameFromRelativePath,
   derivePrefix,
+  extractDocsFromBruContent,
   sanitizeSegment,
   validateToolName
 } from '../../src/naming.js';
@@ -64,4 +65,51 @@ test('buildCollectionToolMap excludes collection.bru', async () => {
 
   assert.equal(map.has('the_cat_api.collection'), false);
   assert.equal(map.has('the_cat_api_auth_get_breeds'), true);
+});
+
+test('extractDocsFromBruContent returns undefined when no docs block', () => {
+  assert.equal(extractDocsFromBruContent('meta { name: x }\nget { url: / }'), undefined);
+  assert.equal(extractDocsFromBruContent(''), undefined);
+});
+
+test('extractDocsFromBruContent extracts multi-line docs block', () => {
+  const bru = `meta { name: Invoice }
+
+docs {
+  This is the request to get invoice information from OIC/Fusion.
+  The response includes: CustomerTransactionId, TransactionType.
+}
+`;
+  const docs = extractDocsFromBruContent(bru);
+  assert.ok(docs?.includes('invoice information'));
+  assert.ok(docs?.includes('CustomerTransactionId'));
+});
+
+test('extractDocsFromBruContent extracts inline docs', () => {
+  const docs = extractDocsFromBruContent('docs { Single line description }\n');
+  assert.equal(docs, 'Single line description');
+});
+
+test('buildCollectionToolMap includes docs when present in .bru', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'bruno-mcp-docs-'));
+  await mkdir(path.join(root, 'api'));
+  await writeFile(
+    path.join(root, 'api', 'invoice.bru'),
+    `meta { name: Invoice }
+get { url: /invoice }
+docs {
+  Fetches invoice details from OIC.
+}
+`
+  );
+
+  const map = await buildCollectionToolMap({
+    bruFilesAbs: [path.join(root, 'api', 'invoice.bru')],
+    collectionRootAbs: root,
+    prefix: 'my_api'
+  });
+
+  const target = map.get('my_api_api_invoice');
+  assert.ok(target);
+  assert.equal(target?.docs, 'Fetches invoice details from OIC.');
 });

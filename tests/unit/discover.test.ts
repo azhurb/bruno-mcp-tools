@@ -31,3 +31,18 @@ test('discoverBruFiles skips symlinks', async () => {
   const files = await discoverBruFiles(root);
   assert.deepEqual(files, []);
 });
+
+test('discoverBruFiles excludes files under environments folder', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'bruno-mcp-discover-'));
+  await mkdir(path.join(root, 'environments'));
+  await mkdir(path.join(root, 'api'));
+  await writeFile(path.join(root, 'environments', 'production.bru'), 'prod');
+  await writeFile(path.join(root, 'environments', 'staging.bru'), 'staging');
+  await writeFile(path.join(root, 'api', 'get-users.bru'), 'get users');
+
+  const files = await discoverBruFiles(root);
+  const rootReal = await realpath(root);
+  const rel = files.map((f) => path.relative(rootReal, f).split(path.sep).join('/'));
+
+  assert.deepEqual(rel, ['api/get-users.bru']);
+});
